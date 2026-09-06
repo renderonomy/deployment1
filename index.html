@@ -110,10 +110,17 @@ h2{font-family:var(--serif); font-weight:600; font-size:clamp(24px,2.8vw,36px); 
 .contact-form input:focus, .contact-form textarea:focus{outline:2px solid var(--accent); border-color:var(--accent);}
 .contact-form textarea{resize:vertical; min-height:100px;}
 .form-note{font-family:var(--sans); font-size:12px; color:var(--ink-soft); margin-top:2px;}
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.74); display:none; align-items:center; justify-content:center; z-index:100; padding:24px;}
+.modal-overlay.is-open{display:flex;}
+.modal-box{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent2); border-radius:var(--r); padding:38px 34px; max-width:430px; width:100%; text-align:center;}
+.modal-box h3{font-family:var(--serif); font-size:25px; font-weight:600; margin-bottom:12px;}
+.modal-box p{font-family:var(--sans); color:var(--ink-soft); font-size:15px; line-height:1.7;}
+.modal-box .btn{margin-top:26px;}
 footer{padding:32px 0; font-family:var(--sans); font-size:12px; color:var(--ink-soft);}
 footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
 @media (max-width:860px){
-  .hero{grid-template-columns:1fr; padding:44px 0 52px; gap:44px;}
+  .hero{grid-template-columns:1fr; padding:68px 0 52px; gap:44px;}
+  .page-hero{padding:60px 0 20px;}
   .why-grid, .about-grid{grid-template-columns:1fr; gap:36px;}
   .team-grid{grid-template-columns:1fr;}
   .steps{grid-template-columns:1fr 1fr;}
@@ -128,6 +135,8 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10
   .wrap{padding:0 20px;}
 }
 @media (max-width:480px){
+  .hero{padding-top:60px;}
+  .page-hero{padding-top:54px;}
   .niche-grid, .steps{grid-template-columns:1fr;}
   .btn{padding:14px 20px; font-size:12.5px;}
   h1{font-size:clamp(28px,8vw,38px);}
@@ -552,16 +561,46 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10
     <div class="wrap footer-bottom">© Renderonomy, Product Visualization Studio</div>
   </footer>
 
+  <div class="modal-overlay" id="thanks-modal" role="dialog" aria-modal="true" aria-labelledby="thanks-title">
+    <div class="modal-box">
+      <h3 id="thanks-title">Thank you for contacting us</h3>
+      <p>We've received your message and we'll reach out soon.</p>
+      <button type="button" class="btn btn-solid" id="thanks-close">Close</button>
+    </div>
+  </div>
+
 <script>
 var titles = {home:"Renderonomy — Product Rendering Studio", about:"About — Renderonomy", process:"Process — Renderonomy", contact:"Contact — Renderonomy"};
 (function(){
   var cf = document.getElementById('contact-form');
+  var modal = document.getElementById('thanks-modal');
+  var modalClose = document.getElementById('thanks-close');
+  var lastFocus = null;
+
+  function openModal(){
+    if(!modal) return;
+    lastFocus = document.activeElement;
+    modal.classList.add('is-open');
+    if(modalClose) modalClose.focus();
+  }
+  function closeModal(){
+    if(!modal) return;
+    modal.classList.remove('is-open');
+    if(lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  if(modalClose) modalClose.addEventListener('click', closeModal);
+  if(modal) modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && modal && modal.classList.contains('is-open')) closeModal();
+  });
+
   if(!cf) return;
   cf.addEventListener('submit', function(e){
     e.preventDefault();
     var btn = cf.querySelector('button[type="submit"]');
     var note = document.getElementById('contact-form-note');
     var originalBtnText = btn.textContent;
+    var originalNote = note ? note.textContent : '';
     btn.disabled = true;
     btn.textContent = 'Sending...';
     fetch('https://api.web3forms.com/submit', {
@@ -570,18 +609,18 @@ var titles = {home:"Renderonomy — Product Rendering Studio", about:"About — 
       body: JSON.stringify(Object.fromEntries(new FormData(cf)))
     }).then(function(r){ return r.json(); }).then(function(data){
       btn.disabled = false;
+      btn.textContent = originalBtnText;
       if(data.success){
         cf.reset();
-        btn.textContent = originalBtnText;
-        note.textContent = "Thanks — we'll be in touch shortly.";
+        if(note) note.textContent = originalNote;
+        openModal();
       } else {
-        btn.textContent = originalBtnText;
-        note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
+        if(note) note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
       }
     }).catch(function(){
       btn.disabled = false;
       btn.textContent = originalBtnText;
-      note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
+      if(note) note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
     });
   });
 })();
