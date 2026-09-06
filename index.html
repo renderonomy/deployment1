@@ -507,15 +507,17 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10
           <p style="margin-top:24px;">Prefer email? Write directly:</p>
           <a href="mailto:hello@renderonomy.com" class="btn btn-outline" style="margin-top:16px;">hello@renderonomy.com</a>
         </div>
-        <form name="contact" method="POST" data-netlify="true" class="contact-form">
-          <input type="hidden" name="form-name" value="contact">
+        <form id="contact-form" class="contact-form">
+          <input type="hidden" name="access_key" value="73b47f44-6ad9-48e5-a707-df188cf667fb">
+          <input type="hidden" name="subject" value="New inquiry from Renderonomy contact form">
+          <input type="checkbox" name="botcheck" style="display:none">
           <div class="form-row">
             <input type="text" name="name" placeholder="Name" required>
             <input type="email" name="email" placeholder="Email" required>
           </div>
           <textarea name="message" placeholder="Tell us about your product" rows="5" required></textarea>
           <button type="submit" class="btn btn-solid">Send Message</button>
-          <div class="form-note">Goes straight to Renderonomy, handled automatically. No separate inbox needed on your end.</div>
+          <div class="form-note" id="contact-form-note">Goes straight to Renderonomy, handled automatically. No separate inbox needed on your end.</div>
         </form>
       </div>
     </section>
@@ -552,6 +554,37 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10
 
 <script>
 var titles = {home:"Renderonomy — Product Rendering Studio", about:"About — Renderonomy", process:"Process — Renderonomy", contact:"Contact — Renderonomy"};
+(function(){
+  var cf = document.getElementById('contact-form');
+  if(!cf) return;
+  cf.addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = cf.querySelector('button[type="submit"]');
+    var note = document.getElementById('contact-form-note');
+    var originalBtnText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Accept':'application/json'},
+      body: JSON.stringify(Object.fromEntries(new FormData(cf)))
+    }).then(function(r){ return r.json(); }).then(function(data){
+      btn.disabled = false;
+      if(data.success){
+        cf.reset();
+        btn.textContent = originalBtnText;
+        note.textContent = "Thanks — we'll be in touch shortly.";
+      } else {
+        btn.textContent = originalBtnText;
+        note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
+      }
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = originalBtnText;
+      note.textContent = 'Something went wrong. Please email hello@renderonomy.com directly.';
+    });
+  });
+})();
 function showPage(id){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('is-active');});
   document.getElementById('page-'+id).classList.add('is-active');
